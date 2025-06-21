@@ -27,8 +27,8 @@ module.exports = async (req, res) => {
           partNumber = rawSku.match(/\d+/)[0];
           price = $("span.price--large").text().trim();
           const rawImageUrl =
-            $(".product-gallery__image.is-selected").attr("data-zoom") ||
-            $(".product-gallery__image.is-selected").attr("src");
+            $(".product-gallery__image").first().attr("data-zoom") ||
+            $(".product-gallery__image").first().attr("src");
           if (rawImageUrl && rawImageUrl.startsWith("//")) {
             imageUrl = "https:" + rawImageUrl;
           } else {
