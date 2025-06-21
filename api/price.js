@@ -22,10 +22,8 @@ module.exports = async (req, res) => {
           partNumber = $(".part_number span").first().text().trim();
         } else if (hostname === "shop.ford.co.uk") {
           title = $("h1.product-details__title").text().trim();
-          partNumber = $(".product-details__sku")
-            .text()
-            .replace("Product No.", "")
-            .trim();
+          const rawSku = $(".product-details__sku").first().text();
+          partNumber = rawSku.match(/\d+/)[0];
           price = $("span.price--large").text().trim();
         }
 
