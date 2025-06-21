@@ -3,14 +3,32 @@ const cheerio = require("cheerio");
 module.exports = async (req, res) => {
   try {
     const { gotScraping } = await import("got-scraping");
-    const url =
-      "https://www.tascaparts.com/oem-parts/ford-engine-timing-belt-tensioner-f1fz6c348c";
-    const { body } = await gotScraping(url);
+    const { url } = req.query;
 
+    if (!url) {
+      return res.status(400).json({ error: "URL parameter is required." });
+    }
+
+    const { body } = await gotScraping(url);
     const $ = cheerio.load(body);
-    const price = $("#product_price").text().trim();
-    const title = $(".product-title").first().text().trim();
-    const partNumber = $(".part_number span").first().text().trim();
+
+    let price, title, partNumber;
+    const hostname = new URL(url).hostname;
+
+    if (hostname === "www.tascaparts.com") {
+      price = $("#product_price").text().trim();
+      title = $(".product-title").first().text().trim();
+      partNumber = $(".part_number span").first().text().trim();
+    } else if (hostname === "shop.ford.co.uk") {
+      title = $("h1.product-details__title").text().trim();
+      partNumber = $(".product-details__sku")
+        .text()
+        .replace("Product No.", "")
+        .trim();
+      price = $("span.price--large").text().trim();
+    } else {
+      return res.status(400).json({ error: "Unsupported website." });
+    }
 
     res.status(200).json({ price, title, partNumber });
   } catch (err) {
