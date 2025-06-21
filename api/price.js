@@ -3,36 +3,44 @@ const cheerio = require("cheerio");
 module.exports = async (req, res) => {
   try {
     const { gotScraping } = await import("got-scraping");
-    const { url } = req.query;
+    const urls = [
+      "https://www.tascaparts.com/oem-parts/ford-engine-timing-belt-tensioner-f1fz6c348c",
+      "https://shop.ford.co.uk/products/ford-ecosport-fiesta-focus-gtdi-oil-pump-drive-belt-2017",
+      "https://shop.ford.co.uk/products/ford-gtdi-ecoboost-cam-timing-belt-11-2017",
+    ];
 
-    if (!url) {
-      return res.status(400).json({ error: "URL parameter is required." });
-    }
+    const promises = urls.map(async (url) => {
+      try {
+        const { body } = await gotScraping(url);
+        const $ = cheerio.load(body);
+        const hostname = new URL(url).hostname;
+        let price, title, partNumber;
 
-    const { body } = await gotScraping(url);
-    const $ = cheerio.load(body);
+        if (hostname === "www.tascaparts.com") {
+          price = $("#product_price").text().trim();
+          title = $(".product-title").first().text().trim();
+          partNumber = $(".part_number span").first().text().trim();
+        } else if (hostname === "shop.ford.co.uk") {
+          title = $("h1.product-details__title").text().trim();
+          partNumber = $(".product-details__sku")
+            .text()
+            .replace("Product No.", "")
+            .trim();
+          price = $("span.price--large").text().trim();
+        }
 
-    let price, title, partNumber;
-    const hostname = new URL(url).hostname;
+        return { price, title, partNumber, url };
+      } catch (error) {
+        console.error(`Error scraping ${url}:`, error);
+        return { url, error: "Failed to scrape this URL." };
+      }
+    });
 
-    if (hostname === "www.tascaparts.com") {
-      price = $("#product_price").text().trim();
-      title = $(".product-title").first().text().trim();
-      partNumber = $(".part_number span").first().text().trim();
-    } else if (hostname === "shop.ford.co.uk") {
-      title = $("h1.product-details__title").text().trim();
-      partNumber = $(".product-details__sku")
-        .text()
-        .replace("Product No.", "")
-        .trim();
-      price = $("span.price--large").text().trim();
-    } else {
-      return res.status(400).json({ error: "Unsupported website." });
-    }
+    const results = await Promise.all(promises);
 
-    res.status(200).json({ price, title, partNumber });
+    res.status(200).json(results);
   } catch (err) {
     console.error("❌ Error:", err);
-    res.status(500).json({ error: "Failed to fetch the price." });
+    res.status(500).json({ error: "Failed to fetch prices." });
   }
 };
