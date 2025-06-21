@@ -14,20 +14,29 @@ module.exports = async (req, res) => {
         const { body } = await gotScraping(url);
         const $ = cheerio.load(body);
         const hostname = new URL(url).hostname;
-        let price, title, partNumber;
+        let price, title, partNumber, imageUrl;
 
         if (hostname === "www.tascaparts.com") {
           price = $("#product_price").text().trim();
           title = $(".product-title").first().text().trim();
           partNumber = $(".part_number span").first().text().trim();
+          imageUrl = $(".product-main-image").attr("src");
         } else if (hostname === "shop.ford.co.uk") {
           title = $("h1.product-details__title").text().trim();
           const rawSku = $(".product-details__sku").first().text();
           partNumber = rawSku.match(/\d+/)[0];
           price = $("span.price--large").text().trim();
+          const rawImageUrl =
+            $(".product-gallery__image.is-selected").attr("data-zoom") ||
+            $(".product-gallery__image.is-selected").attr("src");
+          if (rawImageUrl && rawImageUrl.startsWith("//")) {
+            imageUrl = "https:" + rawImageUrl;
+          } else {
+            imageUrl = rawImageUrl;
+          }
         }
 
-        return { price, title, partNumber, url };
+        return { price, title, partNumber, url, imageUrl };
       } catch (error) {
         console.error(`Error scraping ${url}:`, error);
         return { url, error: "Failed to scrape this URL." };
