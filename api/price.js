@@ -9,8 +9,8 @@ module.exports = async (req, res) => {
 
     const $ = cheerio.load(body);
     const price = $("#product_price").text().trim();
-    const title = $(".product-title").text().trim();
-    const partNumber = $(".part_number span").text().trim();
+    const title = $(".product-title").first().text().trim();
+    const partNumber = $(".part_number span").first().text().trim();
 
     res.status(200).json({ price, title, partNumber });
   } catch (err) {
